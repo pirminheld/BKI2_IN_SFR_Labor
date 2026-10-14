@@ -22,7 +22,7 @@ function pinView(){
  if(!high)content+=`<rect x="166" y="126" width="32" height="12" fill="#edf4f8"/>${path('M 160 132 L 192 113','wire')}`;
  content+=path('M 105 255 V 237 H 160',low?'active':'wire')+path('M 160 237 H 205',low?'active':'wire')+path('M 205 237 H 320 V 185',low?'active':'wire');
  if(!low)content+=`<rect x="166" y="231" width="32" height="12" fill="#edf4f8"/>${path('M 160 237 L 192 218','wire')}`;
- content+=path('M 320 185 H 535','active')+`<circle cx="320" cy="185" r="5" fill="#005b96"/>${txt(545,191,'PA'+s.pin)}`;
+ content+=path('M 320 185 H 535','active')+`<circle cx="320" cy="185" r="5" fill="#005b96"/>${txt(545,172,'PA'+s.pin)}`;
  content+=path('M 105 108 V 78 H 300 V 95',p.pull?'active':'wire')+`<rect x="290" y="95" width="20" height="45" class="part ${p.pull?'':'dim'}"/>`+path('M 300 140 V 185 H 320',p.pull?'active':'wire')+txt(325,113,'Pull-up','tiny');
  if(!p.pull)content+=`<rect x="294" y="150" width="12" height="26" fill="#edf4f8"/>${path('M 300 150 L 283 172','wire')}`;
  content+=path('M 320 185 H 230 V 320 H 65','digital')+txt(68,344,'Zur digitalen Eingangsschaltung → PINA'+s.pin,'tiny');
@@ -31,7 +31,7 @@ function pinView(){
  content+=path('M 480 185 H 590 V 405 H 505',selected?'active':'wire');
  content+=`<rect x="365" y="375" width="140" height="80" rx="8" class="zone"/>${txt(380,400,'Analog-MUX')}${txt(380,423,'ADMUX · MUX4:0','tiny')}${txt(380,444,cfg.channel<8?'gewählt: ADC'+cfg.channel:'Sonderauswahl','tiny')}`;
  content+=path('M 365 415 H 310',selected?'active':'wire');
- content+=`<rect x="165" y="375" width="145" height="80" rx="8" class="zone"/>${txt(180,400,'ADC · 10 Bit')}${txt(180,423,'ADCSRA · ADEN / ADSC','tiny')}${txt(180,444,!s.enabled?'ausgeschaltet':s.busy?'Wandlung läuft':'eingeschaltet','tiny')}`;
+ content+=`<rect x="165" y="375" width="145" height="80" rx="8" class="zone"/>${txt(180,400,'ADC · 10 Bit')}${txt(180,423,'ADCSRA','tiny')}${txt(180,444,!s.enabled?'ausgeschaltet':s.busy?'Wandlung läuft':'eingeschaltet','tiny')}`;
  content+=txt(35,495,selected?'Analoger Pfad: Dieser Pin ist am MUX ausgewählt.':'Analoger Pfad: MUX wählt einen anderen Eingang.','tiny');
  content+=txt(35,520,p.out?'Achtung: Der Ausgangstreiber bleibt trotz MUX-Auswahl aktiv!':p.pull?'Für eine externe Sensormessung den Pull-up ausschalten.':'Eingang ohne Pull-up: für externe Sensorspannung vorbereitet.','tiny');
  content+=txt(35,550,'ADMUX: Referenz '+(cfg.refs===1?'AVCC':cfg.refs===3?'2,56 V':cfg.refs===0?'AREF':'reserviert')+' · ADLAR = '+(+cfg.left),'tiny');
