@@ -15,7 +15,7 @@ function redrawRegisters(){
  $('port-code').textContent=`DDRA  = ${M.hex(s.ddr)};\nPORTA = ${M.hex(s.port)};\n// PUD = 0: interne Pull-ups erlaubt`;
 }
 function pinView(){
- const p=M.pin(s.ddr,s.port,s.pin);$('pin-mode').textContent=p.mode;
+ const p=M.pin(s.ddr,s.port,s.pin);$('pin-mode').textContent=p.mode; $('pin-direction').textContent=`PA${s.pin}: ${p.out?'AUSGANG':'EINGANG'}`;
  const high=p.out&&p.high,low=p.out&&!p.high;
  let content=`<rect x="30" y="30" width="390" height="260" rx="16" class="zone"/>${txt(48,60,'ATmega32A · PA'+s.pin)}${txt(65,100,'VCC = 5 V')}${txt(78,275,'GND')}`;
  content+=path('M 105 108 V 132 H 160',high?'active':'wire')+path('M 160 132 H 205',high?'active':'wire')+path('M 205 132 H 320 V 185',high?'active':'wire');
@@ -27,7 +27,15 @@ function pinView(){
  if(!p.pull)content+=`<rect x="294" y="150" width="12" height="26" fill="#edf4f8"/>${path('M 300 150 L 283 172','wire')}`;
  content+=path('M 320 185 H 230 V 320 H 65','digital')+txt(68,344,'Zur digitalen Eingangsschaltung → PINA'+s.pin,'tiny');
  content+=txt(430,95,high?'Treiber High aktiv':low?'Treiber Low aktiv':'Treiber getrennt','tiny');
- $('pin-diagram').innerHTML=svg(content,620,370);
+ const cfg=M.adcConfig(s.admux),selected=cfg.channel===s.pin;
+ content+=path('M 480 185 H 590 V 405 H 505',selected?'active':'wire');
+ content+=`<rect x="365" y="375" width="140" height="80" rx="8" class="zone"/>${txt(380,400,'Analog-MUX')}${txt(380,423,'ADMUX · MUX4:0','tiny')}${txt(380,444,cfg.channel<8?'gewählt: ADC'+cfg.channel:'Sonderauswahl','tiny')}`;
+ content+=path('M 365 415 H 310',selected?'active':'wire');
+ content+=`<rect x="165" y="375" width="145" height="80" rx="8" class="zone"/>${txt(180,400,'ADC · 10 Bit')}${txt(180,423,'ADCSRA · ADEN / ADSC','tiny')}${txt(180,444,!s.enabled?'ausgeschaltet':s.busy?'Wandlung läuft':'eingeschaltet','tiny')}`;
+ content+=txt(35,495,selected?'Analoger Pfad: Dieser Pin ist am MUX ausgewählt.':'Analoger Pfad: MUX wählt einen anderen Eingang.','tiny');
+ content+=txt(35,520,p.out?'Achtung: Der Ausgangstreiber bleibt trotz MUX-Auswahl aktiv!':p.pull?'Für eine externe Sensormessung den Pull-up ausschalten.':'Eingang ohne Pull-up: für externe Sensorspannung vorbereitet.','tiny');
+ content+=txt(35,550,'ADMUX: Referenz '+(cfg.refs===1?'AVCC':cfg.refs===3?'2,56 V':cfg.refs===0?'AREF':'reserviert')+' · ADLAR = '+(+cfg.left),'tiny');
+ $('pin-diagram').innerHTML=svg(content,620,575);
  $('pin-explanation').textContent=p.out?(p.high?'Der Ausgangstreiber verbindet den Pin im Modell mit VCC.':'Der Ausgangstreiber verbindet den Pin im Modell mit GND.'):(p.pull?'Der Ausgangstreiber ist getrennt. Ein hochohmiger Pull-up zieht einen sonst offenen Pin Richtung VCC.':'Der Ausgangstreiber und der Pull-up sind getrennt. Die äußere Schaltung muss einen Pegel vorgeben.');
 }
 function adcView(){
@@ -49,6 +57,11 @@ function adcView(){
  if(s.result){const r=s.result,bytes=M.convert(r.u,r.ref,cfg.left);$('adc-result').textContent=`Letzter Messwert: ADC${r.ch}, ${f(r.u)} V → D = ${r.code}. ADCL = ${M.hex(bytes.low)} (${bytes.low}), ADCH = ${M.hex(bytes.high)} (${bytes.high}).`;}
  else $('adc-result').textContent='Noch kein Messwert. Erst einschalten, starten und abschließen.';
  document.querySelectorAll('[data-reg="admux"]').forEach(b=>b.disabled=s.busy);
+ const code=s.result?s.result.code:512, bits=code.toString(2).padStart(10,'0');
+ const arranged=cfg.left?bits+'000000':'000000'+bits;
+ const cells=Array.from(arranged,(bit,i)=>{const used=cfg.left?i<10:i>=6;return `<span class="${used?'data-bit':'zero-bit'}">${bit}<small>${used?'D'+(cfg.left?9-i:15-i):'–'}</small></span>`});
+ $('alignment').innerHTML=`<b>ADLAR = ${+cfg.left}: ${cfg.left?'linksbündig':'rechtsbündig'}</b><p>${s.result?'Aktueller Messwert':'Beispiel ohne Messung'}: D = ${code}. Die zehn blauen Bits enthalten den Wert. Grau sind die sechs unbenutzten Stellen.</p><div class="byte-row"><div><b>ADCH · Bit 7 bis 0</b><div class="byte-bits">${cells.slice(0,8).join('')}</div></div><div><b>ADCL · Bit 7 bis 0</b><div class="byte-bits">${cells.slice(8).join('')}</div></div></div><p>ADLAR verschiebt nur die Ablage, nicht den Messwert. Rechtsbündig liegen D9 und D8 in ADCH, D7 bis D0 in ADCL. Linksbündig liegen D9 bis D2 in ADCH, D1 und D0 in den oberen beiden Stellen von ADCL.</p>`;
+ pinView();
 }
 function mini(where,n){$(where).innerHTML=`<button data-reg="ddr" data-bit="${n}" class="${M.bit(s.ddr,n)?'on':''}">DDRA${n} = ${M.bit(s.ddr,n)} · ${M.bit(s.ddr,n)?'Ausgang':'Eingang'}</button><button data-reg="port" data-bit="${n}" class="${M.bit(s.port,n)?'on':''}">PORTA${n} = ${M.bit(s.port,n)}</button>`;}
 function ledView(){
@@ -88,6 +101,7 @@ document.addEventListener('click',e=>{
  if(b.dataset.tab)selectTab(b.dataset.tab);
  if(b.dataset.preset){s=initial();const p=b.dataset.preset;if(p==='short-low'){s.ddr=5;s.port=5;s.closed=true;}if(p==='short-high'){s.ddr=5;s.port=1;s.pull='down';s.closed=true;}if(p==='floating')s.pull='none';sync();}
 });
+$('select-adc-pin').addEventListener('click',()=>{if(s.busy)return;s.admux=(s.admux&224)|s.pin;render();});
 $('selectedPin').addEventListener('change',e=>{s.pin=+e.target.value;pinView();});
 $('led-type').addEventListener('change',e=>{s.led=e.target.value;ledView();});
 $('led-r').addEventListener('change',e=>{s.r=+e.target.value;ledView();});
